@@ -2,6 +2,9 @@ from mrjob.job import MRJob
 from mrjob.step import MRStep
 
 class CalculNotes(MRJob):
+    """
+    Calculer, pour chaque note présente dans le fichier u.data le nombre de fois qu’elle a été attribuée
+    """
     def steps(self):
         return [
             MRStep(mapper=self.mapper_notes,
