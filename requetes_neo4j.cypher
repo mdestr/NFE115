@@ -103,8 +103,6 @@ RETURN TYPE(r)
 │"BELONGS_TO"│
 └────────────┘*/
 
-
-
 //Tous les noms d'employés avec les noms de leur département :
 MATCH (e: Employee) –[]-> (d: Department)
 RETURN e.name, d.name
@@ -316,8 +314,16 @@ RETURN [ n in nodes(p) | n.name]
 
 //Tous les plus courts chemins entre 'Jim' et 'John' :
 MATCH p=allShortestPaths((jim)-[*1..10]-(john))
-  WHERE jim.name ='Jim’ and john.name='John'
-RETURN p
+  WHERE jim.name ="Jim" and john.name="John"
+RETURN [ n in nodes(p) | n.name]
+/*
+╒═════════════════════════╕
+│[ n in nodes(p) | n.name]│
+╞═════════════════════════╡
+│["Jim", "Sally", "John"] │
+├─────────────────────────┤
+│["Jim", "Sally", "John"] │
+└─────────────────────────┘*/
 
 /*Pour des requêtes avec un pipeline d'opérations, relie les différentes opérations entre elles .
 // Exemple : Appliquer un filtre sur le résultat d'une fonction d'agrégation*/
