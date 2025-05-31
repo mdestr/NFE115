@@ -444,3 +444,67 @@ RETURN DISTINCT b.name AS Node, 0 AS Outdegree
 //│"Egyptienne"              │0        │
 //├──────────────────────────┼─────────┤...
 
+// Afficher les noms des personnages sur le plus court chemin de type
+// COMPAGNON_AVENTURE entre Numerobis et Assurancetourix
+// (on considère le graphe non-dirigé).
+MATCH p=shortestPath((n)-[:COMPAGNON_AVENTURE*1..10]-(m))
+  WHERE n.name = 'Numerobis' AND m.name = 'Assurancetourix'
+RETURN [n IN nodes(p) | n.name] AS path
+//╒═════════════════════════════╕
+//│path                         │
+//╞═════════════════════════════╡
+//│["Numerobis", "Cleopatre", "J│
+//│ules Cesar", "Caius Obtus", "│
+//│Assurancetourix"]            │
+//└─────────────────────────────┘
+
+// Afficher le diamètre du graphe de chemin le plus court
+// (diamètre = plus grande distance possible qui puisse exister entre 2 sommets)
+// en considérant les arcs de type COMPAGNON_AVENTURE (graphe dirigé).
+MATCH p=shortestPath((n)-[:COMPAGNON_AVENTURE*]->(m))
+  WHERE n <> m
+RETURN n.name, m.name, length(p)
+  ORDER BY length(p) DESC LIMIT 1
+//╒═══════════╤═════════════════╤═════════╕
+//│n.name     │m.name           │length(p)│
+//╞═══════════╪═════════════════╪═════════╡
+//│"Cleopatre"│"Assurancetourix"│3        │
+//└───────────┴─────────────────┴─────────┘
+
+// Afficher les noms des noeuds sur tous les plus courts chemins entre Numerobis et Assurancetourix.
+// Afficher uniquement les plus courts chemins contenant plus de 4 noeuds
+// (on considère le graphe comme étant non-dirigé).
+MATCH p=allShortestPaths((n {name: 'Numerobis'})-[:COMPAGNON_AVENTURE*]-(m {name: 'Assurancetourix'}))
+WHERE size(nodes(p)) > 4
+RETURN DISTINCT [n IN nodes(p) | n.name], length(p) ORDER BY length(p) ASC
+//╒═════════════════════════╤═════════╕
+//│[n in nodes(p) | n.name] │length(p)│
+//╞═════════════════════════╪═════════╡
+//│["Numerobis", "Cleopatre"│4        │
+//│, "Jules Cesar", "Caius O│         │
+//│btus", "Assurancetourix"]│         │
+//├─────────────────────────┼─────────┤
+//│["Numerobis", "Cleopatre"│4        │
+//│, "Jules Cesar", "Caligul│         │
+//│a Alavacomgetepus", "Assu│         │
+//│rancetourix"]            │         │
+//└─────────────────────────┴─────────┘
+
+// On considère la propriété 'albums' des arcs de type COMPAGNON_AVENTURE comme poids des arcs.
+// Afficher le chemin avec la distance la plus courte entre Numerobis et Caius Obtus qui considère ces poids
+// (même résultat que celui obtenu avec l'algorithme de Dijkstra).
+// Considérer uniquement les arcs de type COMPAGNON_AVENTURE et leur poids
+// (utiliser shortestPath... WITH REDUCE): WITH REDUCE(dist = 0, rel in rels(path) | dist+rel.albums))).
+MATCH (from: PERSONNAGE {name:'Numerobis'}), (to: PERSONNAGE {name:'Caius Obtus'}),
+      path = shortestPath((from)-[:COMPAGNON_AVENTURE*1..10]-(to))
+WITH reduce(dist = 0, rel IN relationships(path) | dist+rel.albums) AS
+     distance, path
+RETURN path, distance
+//╒═════════════════════════╤════════╕
+//│path                     │distance│
+//╞═════════════════════════╪════════╡
+//│(:PERSONNAGE {personnagei│6       │
+//│d: 116,nationalite: "Egyp│        │
+//│tien",name: "Numerobis",p│        │
+//│ersonnagetype: "Les autre│        │
+//│s",degree: 5})<-[:COMPAGN│        │...
