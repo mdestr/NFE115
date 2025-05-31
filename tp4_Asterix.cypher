@@ -124,8 +124,7 @@ RETURN n, r, m
 //│alite: "Egyptienne",name:│                     │alite: "Romain",name: "Ju│
 //│ "Cleopatre",personnagety│                     │les Cesar",personnagetype│
 //│pe: "Les autres"})       │                     │: "Les Romains"})        │
-//├─────────────────────────┼─────────────────────┼─────────────────────────┤
-//...
+//├─────────────────────────┼─────────────────────┼─────────────────────────┤...
 
 // Ajouter une étiquette :PERSONNAGE aux noeuds qui ont une propriété “personnageid”
 MATCH (n)
@@ -139,8 +138,7 @@ SET n:PERSONNAGE RETURN n.name
 //│"Cesarion (Ptolemee XVI)" │
 //├──────────────────────────┤
 //│"Jules Cesar"             │
-//├──────────────────────────┤
-//...
+//├──────────────────────────┤...
 
 // Compter le nombre de nœuds
 MATCH(n) RETURN count(n)
@@ -201,18 +199,7 @@ RETURN DISTINCT n.name
 //╞═════════════════════════╡
 //│"Cesarion (Ptolemee XVI)"│
 //├─────────────────────────┤
-//│"Numerobis"              │
-//├─────────────────────────┤
-//│"Brutus"                 │
-//├─────────────────────────┤
-//│"Assurancetourix"        │
-//├─────────────────────────┤
-//│"Briseradius"            │
-//├─────────────────────────┤
-//│"Epidemais"              │
-//├─────────────────────────┤
-//│"Lupus"                  │
-//└─────────────────────────┘
+//│"Numerobis"              │...
 
 // Afficher les noms des noeuds qui forment un cycle en triangle (on considère le graphe comme étant non-dirigé)
 MATCH (a)--(b)--(c)--(a)
@@ -241,7 +228,6 @@ RETURN DISTINCT p1.name, p2.name, m.albumid
 MATCH (n)-[r:COMPAGNON_AVENTURE]->(m)
   WHERE n.name <> 'Cleopatre' AND m.name <> 'Cleopatre'
 RETURN n, m
-
 // ╒═════════════════════════════════════╕
 // │n                                    │
 // ╞═════════════════════════════════════╡
@@ -328,8 +314,7 @@ RETURN p, length(p) ORDER BY length(p) DESC LIMIT 1
 //│:COMPAGNON_AVENTURE]->(:PERSONNAGE {personnageid: 56,│         │
 //│nationalite: "Egyptienne",name: "Cleopatre",personnag│         │
 //│etype: "Les autres"})-[:COMPAGNON_AVENTURE]->(:PERSON│         │
-//│NAGE {personnageid: 44,nationalite: "Romain/Egyptien"│         │
-//...
+//│NAGE {personnageid: 44,nationalite: "Romain/Egyptien"│         │...
 
 // Afficher les 3 noeuds qui ont le degré le plus élevé. Affichez pour chacun de ces noeuds
 // son nom et son degré. Pour calculer le degré considérer uniquement les arcs de type
@@ -355,6 +340,107 @@ RETURN n.name, count(DISTINCT r) AS degree
 //└─────────────┴──────┘
 
 // Afficher pour chaque couple de personnages reliés par un arc (non-dirigé) de type
-// COMPAGNON_AVENTURE le nombre d'albums qu'ils ont en commun (afficher le triplet
-// contenant les noms des personnages et le nombre d'albums en commun). Chaque couple de
-// personnages doit apparaître une seule fois. Trier par nombre total d'albums décroissant.
+// COMPAGNON_AVENTURE le nombre d'albums qu'ils ont en commun
+// (afficher le triplet contenant les noms des personnages et le nombre d'albums en commun).
+// Chaque couple de personnages doit apparaître une seule fois.
+// Trier par nombre total d'albums décroissant.
+MATCH (n)-[r:APPARAIT_DANS]->(a)<-[:APPARAIT_DANS]-(m),
+      (n)-[t:COMPAGNON_AVENTURE]-(m)
+  WHERE n.name < m.name
+RETURN n.name, m.name, count(DISTINCT r) AS total
+  ORDER BY total DESC
+//╒══════════════════════════╤═════════════╤═════╕
+//│n.name                    │m.name       │total│
+//╞══════════════════════════╪═════════════╪═════╡
+//│"Cleopatre"               │"Jules Cesar"│3    │
+//├──────────────────────────┼─────────────┼─────┤
+//│"Cleopatre"               │"Numerobis"  │2    │
+//├──────────────────────────┼─────────────┼─────┤
+//│"Cesarion (Ptolemee XVI)" │"Cleopatre"  │1    │
+//├──────────────────────────┼─────────────┼─────┤
+//│"Caius Obtus"             │"Jules Cesar"│1    │
+//├──────────────────────────┼─────────────┼─────┤
+//│"Caligula Alavacomgetepus"│"Jules Cesar"│1    │
+//└──────────────────────────┴─────────────┴─────┘
+
+// Modifier la requête précédente afin d'ajouter à l'arc de type COMPAGNON_AVENTURE qui
+// relie les personnages une propriété 'albums' dont la valeur est le nombre total d'albums en
+// commun.
+// Il s'agit ici d'un pipeline d'opérations (on calcule d'abord le nombre total d'albums avant
+// d'affecter la valeur à l'étiquette) avant le return ⇒ utiliser WITH pour enchaîner les opérations.
+MATCH (n)-[r:APPARAIT_DANS]->(a)<-[:APPARAIT_DANS]-(m),
+      (n)-[t:COMPAGNON_AVENTURE]-(m)
+  WHERE n.name < m.name
+WITH n, m, t, count(DISTINCT r) AS total
+SET t.albums = total
+RETURN DISTINCT n.name, m.name, t.albums
+  ORDER BY t.albums DESC
+//╒══════════════════════════╤═════════════╤════════╕
+//│n.name                    │m.name       │t.albums│
+//╞══════════════════════════╪═════════════╪════════╡
+//│"Cleopatre"               │"Jules Cesar"│3       │
+//├──────────────────────────┼─────────────┼────────┤
+//│"Cleopatre"               │"Numerobis"  │2       │
+//├──────────────────────────┼─────────────┼────────┤
+//│"Cesarion (Ptolemee XVI)" │"Cleopatre"  │1       │
+//├──────────────────────────┼─────────────┼────────┤
+//│"Caius Obtus"             │"Jules Cesar"│1       │
+//├──────────────────────────┼─────────────┼────────┤
+//│"Caligula Alavacomgetepus"│"Jules Cesar"│1       │
+//└──────────────────────────┴─────────────┴────────┘
+
+
+// Degré total des noeuds
+// 1. Afficher pour chaque valeur de degré le nombre de noeuds avec ce degré. Considérer tous
+// les arcs, ordonner par degré
+MATCH (n)-[r ]-()
+WITH n, count(DISTINCT r) AS degree
+RETURN degree, count(n) ORDER BY degree ASC
+//╒══════╤═════╕
+//│degree│nodes│
+//╞══════╪═════╡
+//│1     │23   │
+//├──────┼─────┤
+//│2     │2    │
+//├──────┼─────┤
+//│3     │7    │
+//├──────┼─────┤
+//│4     │2    │...
+
+// 2. Pour chaque noeud enregistrer son degré comme nouvelle propriété.
+// Chacune de ces questions impliquent un enchaînement de deux opérations (utiliser WITH).
+MATCH (n)-[r ]-()
+WITH n, count(DISTINCT r) AS degree
+SET n.degree = degree
+RETURN n.name, n.degree ORDER BY degree ASC
+//╒═════════════════════════════╤════════╕
+//│n.name                       │n.degree│
+//╞═════════════════════════════╪════════╡
+//│"Egyptienne"                 │1       │
+//├─────────────────────────────┼────────┤
+//│"Romain/Egyptien"            │1       │
+//├─────────────────────────────┼────────┤
+//│"Asterix le Gaulois"         │1       │...
+
+// Afficher pour chaque noeud son nom et son degré sortant. Pour les noeuds sans liens
+// sortants afficher 0. Ordonner par ordre décroissant des degrés.
+// Considérer uniquement les arcs de type NATIONALITE et PERSONNAGE_TYPE.
+MATCH (n)-[r:NATIONALITE|PERSONNAGE_TYPE]->()
+RETURN DISTINCT n.name AS Node, count(r) AS Outdegree
+  ORDER BY Outdegree
+UNION
+MATCH (a)-[r:NATIONALITE|PERSONNAGE_TYPE]->(b)
+  WHERE NOT((b)-[:COMPAGNON_AVENTURE]->())
+RETURN DISTINCT b.name AS Node, 0 AS Outdegree
+//╒══════════════════════════╤═════════╕
+//│Node                      │Outdegree│
+//╞══════════════════════════╪═════════╡
+//│"Cleopatre"               │2        │
+//├──────────────────────────┼─────────┤
+//│"Cesarion (Ptolemee XVI)" │2        │
+//├──────────────────────────┼─────────┤
+//...
+//├──────────────────────────┼─────────┤
+//│"Egyptienne"              │0        │
+//├──────────────────────────┼─────────┤...
+
